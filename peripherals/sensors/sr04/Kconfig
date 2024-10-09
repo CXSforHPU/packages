@@ -1,10 +1,12 @@
 
 # Kconfig file for package sr04
-menuconfig PKG_USING_SR04
+menuconfig PKG_SR04_USING_SENSOR_V1
     bool "HC-SR04 sensor driver package."
+    select RT_USING_HWTIMER
+    select RT_USING_SENSOR
     default n
 
-if PKG_USING_SR04
+if PKG_SR04_USING_SENSOR_V1
 
     config PKG_SR04_PATH
         string
@@ -23,9 +25,9 @@ if PKG_USING_SR04
             bool "latest"
     endchoice
 
-    config PKG_USING_SR04_SAMPLE
+    config PKG_SR04_USING_SENSOR_V1_SAMPLE
         bool "Enable sr04 sample"
-        default y
+        default n
 
     config PKG_SR04_VER
        string
