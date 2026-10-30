@@ -257,9 +257,47 @@ if PKG_USING_AGENT
                                 HTTP file upload endpoint, example:
                                 "http://10.0.2.2:8000/stt"
                     endif
-
                 endmenu
 
+                menu "Audio tts Server Settings"
+                    choice PKG_AGENT_TTS_MODE_SEL
+                        prompt "Enable TTS for communication by audio"
+                        default PKG_AGENT_TTS_ENABLE
+
+                        config PKG_AGENT_TTS_ENABLE
+                            bool "Enable TTS"
+                        config PKG_AGENT_TTS_DISABLE
+                            bool "Disable TTS"
+                    endchoice
+
+                    if PKG_AGENT_TTS_ENABLE
+                        config PKG_AGENT_TTS_URL
+                            string "TTS File Server"
+                            default ""
+                            help
+                                HTTP file upload endpoint, example:
+                                "http://10.0.2.2:8000/tts"
+
+                        config PKG_AGENT_TTS_SAVE_PATH
+                            string "Synthesized WAV save path"
+                            default "/tts.wav"
+                            help
+                                合成结果落盘的完整路径，必须是可写文件系统。
+                                根目录挂 romfs 的板子要换到 /sdcard 或 /flash，
+                                例如 "/sdcard/tts.wav"。
+                                msh_agent_tts 用 -o 可以临时覆盖这个路径。
+
+                        config PKG_AGENT_TTS_AUTO_PLAY
+                            depends on PKG_AGENT_DRIVER_AUDIO
+                            bool "Auto play the answer by voice"
+                            default n
+                            help
+                                把每一轮回复文本交给后台线程合成并播放。
+                                需要板上注册了 sound 设备，且 TTS 服务端常驻。
+                                合成一句要 3~5 s(冷启动可到 180 s),
+                                只在串行通道里逐条回答时才适合打开。
+                    endif
+                endmenu
             endmenu
         endif
 
