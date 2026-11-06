@@ -374,12 +374,17 @@ if PKG_USING_AGENT
                 fragment and are dropped once this limit is exceeded.
 
         config PKG_AGENT_MESSAGE_TRIM
-            int "History message trim threshold"
+            int "History message compression threshold"
             default 6
             range 2 64
             help
-                Conversation history trim threshold, preserve system prompt,
-                keep recent N pieces of user-assistant message context.
+                Compress when history exceeds N messages (excluding the system
+                prompt and rolling summary). Keep at least N/2 recent messages,
+                expanding to whole user turns so tool calls stay with results.
+                Older turns and the previous summary are summarized by the LLM
+                in one extra request. Replace only with a complete, shorter
+                summary; on failure keep the original history without deletion.
+                A single long turn is kept intact even if it exceeds N.
     endmenu
 
     choice PKG_AGENT_COMMUNICATION_CHANNEL_SEL
@@ -410,6 +415,19 @@ if PKG_USING_AGENT
                 Interact with agent via LVGL GUI.
 
     endchoice
+
+    menu "Agent Skills Configuration"
+        config PKG_AGENT_SKILL_DIR
+            string "Markdown skill directory"
+            default "skills"
+            help
+                Recursively embed .md files as const C strings at build time.
+                Relative paths are resolved from the Agent package directory;
+                absolute paths are also supported. Use UTF-8 Markdown files.
+                The relative path without .md is the skill name.
+                Override for one build with scons agent_skill_dir=<directory>.
+                Changes require rebuilding firmware; no runtime filesystem is needed.
+    endmenu
 
     menu "Agent Tools Configuration"
 
@@ -709,6 +727,106 @@ if PKG_USING_AGENT
                             range 1 254 allowed unusable values).
 
                 endmenu
+
+            endif
+
+        endmenu
+
+        menu "Agent Tool: Device Framework"
+
+            # 设备工具按设备类拆成一个目录一个 .c：core 是通用层，其余每类一个模块。
+            # 每个模块文件自己用 #ifdef PKG_AGENT_TOOL_DEVICE_XXX 包住全文，并用
+            # AGENT_TOOL_MODULE_EXPORT 登记到模块表，所以关掉某个模块 = 不编译该文件，
+            # 注册表和工具列表里自然没有它，不需要改中心文件。
+            config PKG_AGENT_TOOL_DEVICE
+                bool "Enable device framework tools"
+                depends on RT_USING_DEVICE
+                default n
+                help
+                    Let the agent drive peripherals through the RT-Thread device framework.
+                    Turn on the generic layer (core) first, then pick the device classes the
+                    project actually has drivers for.
+
+            if PKG_AGENT_TOOL_DEVICE
+
+                config PKG_AGENT_TOOL_DEVICE_CORE
+                    bool "Generic layer (device_list/info/open/close/read/write/control)"
+                    default y
+                    help
+                        The class-independent tools over rt_device_*. Keep this on: every
+                        other module tells the model to call device_list first to get exact
+                        device names, and the console/read-only guards live here.
+
+                config PKG_AGENT_TOOL_DEVICE_PIN
+                    bool "GPIO pin tools (pin_mode/pin_write/pin_read)"
+                    depends on RT_USING_PIN
+                    default y
+                    help
+                        Uses the global pin controller installed by rt_pin_attach_irq's
+                        companion driver, so a pin driver must be registered; pin numbers
+                        accept 12345 or the "P3.4" style name.
+
+                config PKG_AGENT_TOOL_DEVICE_PWM
+                    bool "PWM tools (pwm_set/get/enable/disable)"
+                    depends on RT_USING_PWM
+                    default y
+                    help
+                        Period and duty are nanoseconds on a 'pwm0' class pwm device.
+                        With no PWM driver attached, device_list shows no pwm device and
+                        these tools report that instead of guessing a channel.
+
+                config PKG_AGENT_TOOL_DEVICE_ADC
+                    bool "ADC tools (adc_read)"
+                    depends on RT_USING_ADC && !RT_USING_ADC_V2
+                    default y
+                    help
+                        One shot read: enable the channel, return raw plus millivolt, then
+                        disable again. Needs the v1 ADC framework; ADC V2 replaces the
+                        channel API with batch streams, so this module compiles out there.
+
+                config PKG_AGENT_TOOL_DEVICE_DAC
+                    bool "DAC tools (dac_write/dac_enable/dac_disable)"
+                    depends on RT_USING_DAC
+                    default y
+                    help
+                        Values are raw codes; the tool clamps them against the resolution
+                        reported by the driver before writing.
+
+                config PKG_AGENT_TOOL_DEVICE_I2C
+                    bool "I2C tools (i2c_write/read/writeread)"
+                    depends on RT_USING_I2C
+                    default y
+                    help
+                        Talks to a 7-bit or 10-bit address on an i2cbus device such as
+                        'i2c1'. writeread is the combined transaction most register-map
+                        chips need.
+
+                config PKG_AGENT_TOOL_DEVICE_SPI
+                    bool "SPI tools (spi_configure/spi_transfer)"
+                    depends on RT_USING_SPI
+                    default y
+                    help
+                        These act on SPI slave devices (class spidevice, e.g. 'spi10'),
+                        not on the bus itself; a bus needs its driver attached first.
+
+                config PKG_AGENT_TOOL_DEVICE_SENSOR
+                    bool "Sensor tools (sensor_read/info/control)"
+                    depends on RT_USING_SENSOR && !RT_USING_SENSOR_V2
+                    default y
+                    help
+                        Reads struct rt_sensor_data through rt_device_read and decodes
+                        data.type into a value with its unit. Sensor framework v2 has a
+                        different frame API, so this module compiles out there.
+
+                config PKG_AGENT_TOOL_DEVICE_LED
+                    bool "LED tools (led_set/led_get/led_brightness)"
+                    depends on RT_USING_LED
+                    default y
+                    help
+                        Uses the LED framework's text protocol on the 'led0'.. char devices,
+                        so the device has to be opened with device_open before use. The LED
+                        framework itself sits under RT_USING_DM, so without device model this
+                        module has no devices to talk to.
 
             endif
 
