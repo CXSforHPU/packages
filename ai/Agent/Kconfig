@@ -208,6 +208,8 @@ if PKG_USING_AGENT
                 Anthropic: POST /v1/messages, x-api-key header, event-based SSE.
                 This choice only sets the default protocol. A running agent can
                 switch protocol through agent_config_set_protocol().
+                The Anthropic options below only show up when Anthropic is
+                picked here.
 
             config PKG_AGENT_API_PROTOCOL_OPENAI
                 bool "OpenAI"
@@ -218,19 +220,22 @@ if PKG_USING_AGENT
 
         config PKG_AGENT_ANTHROPIC_VERSION
             string "Anthropic API version header"
+            depends on PKG_AGENT_API_PROTOCOL_ANTHROPIC
             default "2023-06-01"
             help
                 Value of the anthropic-version request header.
-                Only used when the protocol is Anthropic.
+                This option only shows up when the protocol is Anthropic.
 
         config PKG_AGENT_ANTHROPIC_MAX_TOKENS
             int "Anthropic max output tokens"
+            depends on PKG_AGENT_API_PROTOCOL_ANTHROPIC
             default 4096
             range 256 32768
             help
                 Upper bound of the max_tokens field of an Anthropic request.
                 The service rejects a value larger than the model's own output
                 limit, so the value sent is min(request value, this cap).
+                This option only shows up when the protocol is Anthropic.
 
         # Multimodal enable/disable choice (mode 开关)
         choice PKG_AGENT_MULTIMODAL_MODE_SEL
