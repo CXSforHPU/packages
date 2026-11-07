@@ -318,7 +318,7 @@ if PKG_USING_AGENT
                                 HTTP file upload endpoint, example:
                                 "http://10.0.2.2:8000/tts"
 
-                        config PKG_AGENT_TTS_SAVE_PATH
+                        config PKG_AGENT_TTS_SAVE_FILE
                             string "Synthesized WAV save path"
                             default "/tts.wav"
                             help
@@ -326,6 +326,9 @@ if PKG_USING_AGENT
                                 根目录挂 romfs 的板子要换到 /sdcard 或 /flash，
                                 例如 "/sdcard/tts.wav"。
                                 msh_agent_tts 用 -o 可以临时覆盖这个路径。
+                                名字不能以 _PATH 结尾：RT-Thread 用 PKG_*_PATH
+                                记录软件包安装路径，mk_rtconfig 会把它从
+                                rtconfig.h 里删掉。
 
                         config PKG_AGENT_TTS_AUTO_PLAY
                             depends on PKG_AGENT_DRIVER_AUDIO
