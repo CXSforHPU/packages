@@ -291,6 +291,7 @@ if PKG_USING_AGENT
                                 HTTP file upload endpoint, example:
                                 "http://10.0.2.2:8000/stt"
                     endif
+
                 endmenu
 
                 menu "Audio tts Server Settings"
@@ -328,10 +329,11 @@ if PKG_USING_AGENT
                             help
                                 把每一轮回复文本交给后台线程合成并播放。
                                 需要板上注册了 sound 设备，且 TTS 服务端常驻。
-                                合成一句要 3~5 s(冷启动可到 180 s),
+                                合成一句要 3 s～5 s（冷启动可到 180 s），
                                 只在串行通道里逐条回答时才适合打开。
                     endif
                 endmenu
+
             endmenu
         endif
 
